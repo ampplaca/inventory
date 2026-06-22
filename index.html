@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AniGame Inventory — Amp</title>
 <style>
@@ -128,10 +127,6 @@
     header h1{font-size:1.3rem}
     .grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:12px}
   }
-  .loading-overlay{position:fixed;inset:0;background:rgba(13,15,26,0.92);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
-  .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .loading-text{color:var(--muted);font-size:0.9rem}
 </style>
 </head>
 <body>
@@ -363,7 +358,6 @@
   <div class="modal" id="modal"></div>
 </div>
 
-<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div class="loading-text" id="loadingText">Loading inventory...</div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -379,41 +373,19 @@ const cardById = {};
 CARD_DB.forEach(c => cardById[c.id] = c);
 
 // Inventory stored in localStorage: { card_id: {ur, sr, ur_price, sr_price} }
-const SUPABASE_URL = "https://nklxbueibntlpwfsglpm.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rbHhidWVpYm50bHB3ZnNnbHBtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNDkyMjMsImV4cCI6MjA5NTgyNTIyM30.-LWlSb_A3W-RNgXemNpiA_mxRQMWrJtvYFOEjLvYuZQ";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-let inv = {};
-
-async function loadInv() {
-  const { data, error } = await sb.from('anigame_inventory').select('*');
-  if (error) { console.error('loadInv:', error); throw new Error('Supabase: ' + error.message); }
-  inv = {};
-  if (!data.length) {
-    // Seed from INITIAL_INV on first load
-    const rows = Object.entries(INITIAL_INV).map(([card_id, v]) => ({
-      card_id, ur: v.ur, sr: v.sr, ur_price: v.ur_price || '', sr_price: v.sr_price || ''
-    }));
-    const { error: e2 } = await sb.from('anigame_inventory').insert(rows);
-    if (e2) console.error('seed inv:', e2);
-    Object.entries(INITIAL_INV).forEach(([k,v]) => inv[k] = v);
-  } else {
-    data.forEach(r => inv[r.card_id] = { ur: r.ur, sr: r.sr, ur_price: r.ur_price, sr_price: r.sr_price });
-  }
+function loadInv() {
+  const saved = localStorage.getItem('anigame_inv_v2');
+  if (saved) return JSON.parse(saved);
+  // First load: use initial inventory
+  localStorage.setItem('anigame_inv_v2', JSON.stringify(INITIAL_INV));
+  return JSON.parse(JSON.stringify(INITIAL_INV));
 }
 
-async function saveInv(inv) {
-  const rows = Object.entries(inv).map(([card_id, v]) => ({
-    card_id, ur: v.ur || 0, sr: v.sr || 0, ur_price: v.ur_price || '', sr_price: v.sr_price || ''
-  }));
-  const { error } = await sb.from('anigame_inventory').upsert(rows, { onConflict: 'card_id' });
-  if (error) console.error('saveInv:', error);
+function saveInv(inv) {
+  localStorage.setItem('anigame_inv_v2', JSON.stringify(inv));
 }
 
-async function deleteInvCard(card_id) {
-  const { error } = await sb.from('anigame_inventory').delete().eq('card_id', card_id);
-  if (error) console.error('deleteInvCard:', error);
-}
+let inv = loadInv();
 let currentSort = 'name';
 let sortDir = 1;
 let activeTab = 'inventory';
@@ -674,28 +646,27 @@ function adjustQty(cardId, type, delta) {
   document.getElementById(type + '-qty').textContent = _adjustInv[cardId][type];
 }
 
-async function saveCard(cardId) {
+function saveCard(cardId) {
   const urQty = parseInt(document.getElementById('ur-qty').textContent) || 0;
   const srQty = parseInt(document.getElementById('sr-qty').textContent) || 0;
   const urPrice = document.getElementById('ur-price').value.trim();
   const srPrice = document.getElementById('sr-price').value.trim();
   if (urQty === 0 && srQty === 0) {
     delete inv[cardId];
-    await deleteInvCard(cardId);
   } else {
     inv[cardId] = {ur: urQty, sr: srQty, ur_price: urPrice, sr_price: srPrice};
-    await saveInv({[cardId]: inv[cardId]});
   }
   delete _adjustInv[cardId];
+  saveInv(inv);
   document.getElementById('modalOverlay').classList.remove('open');
   populateFilters();
   render();
   showToast('Saved!');
 }
 
-async function removeCard(cardId) {
+function removeCard(cardId) {
   delete inv[cardId];
-  await deleteInvCard(cardId);
+  saveInv(inv);
   document.getElementById('modalOverlay').classList.remove('open');
   populateFilters();
   render();
@@ -772,10 +743,10 @@ function renderAddList() {
   }).join('');
 }
 
-async function addCard(cardId) {
-  if (!inv[cardId]) {
-    inv[cardId] = {ur:0, sr:0, ur_price:'', sr_price:''};
-  }
+function addCard(cardId) {
+  if (!inv[cardId]) inv[cardId] = {ur:0, sr:0, ur_price:'', sr_price:''};
+  saveInv(inv);
+  // Open modal to set qty
   switchTab('inventory');
   openModal(cardId);
   renderAddList();
@@ -794,22 +765,14 @@ function switchTab(tab) {
   if (tab === 'sold') renderSoldList();
   if (tab === 'collection') renderCollection();
   if (tab === 'buildqueue') renderBuildQueue();
-
 }
 
 // ── SOLD LOG ──────────────────────────────────────────
-async function loadSales() {
-  const { data, error } = await sb.from('anigame_sales').select('*').order('id', {ascending: false});
-  if (error) { console.error('loadSales:', error); return []; }
-  return data.map(r => ({id: r.id, cardId: r.card_id, name: r.name, rarity: r.rarity, instanceId: r.instance_id, price: r.price, date: r.date}));
+function loadSales() {
+  try { return JSON.parse(localStorage.getItem('anigame_sales_v1') || '[]'); } catch { return []; }
 }
-async function insertSale(sale) {
-  const { error } = await sb.from('anigame_sales').insert({id: sale.id, card_id: sale.cardId, name: sale.name, rarity: sale.rarity, instance_id: sale.instanceId || '', price: sale.price, date: sale.date});
-  if (error) console.error('insertSale:', error);
-}
-async function deleteSaleById(id) {
-  const { error } = await sb.from('anigame_sales').delete().eq('id', id);
-  if (error) console.error('deleteSale:', error);
+function saveSales(sales) {
+  localStorage.setItem('anigame_sales_v1', JSON.stringify(sales));
 }
 
 let _selectedSaleCard = null;
@@ -854,7 +817,7 @@ function selectSaleCard(id, name) {
   document.getElementById('saleCardList').innerHTML = '';
 }
 
-async function logSale() {
+function logSale() {
   if (!_selectedSaleCard) { showToast('Select a card first'); return; }
   const price = parseInt(document.getElementById('salePriceInput').value.replace(/,/g,''));
   if (!price || isNaN(price)) { showToast('Enter a valid price'); return; }
@@ -862,7 +825,8 @@ async function logSale() {
   const instanceId = document.getElementById('saleInstanceId').value.trim();
   const date = document.getElementById('saleDateInput').value || new Date().toISOString().split('T')[0];
 
-  const newSale = {
+  const sales = loadSales();
+  sales.unshift({
     id: Date.now(),
     cardId: _selectedSaleCard.id,
     name: _selectedSaleCard.name,
@@ -870,21 +834,23 @@ async function logSale() {
     instanceId: instanceId,
     price: price,
     date: date
-  };
-  await insertSale(newSale);
+  });
+  saveSales(sales);
+
   document.getElementById('addSaleOverlay').classList.remove('open');
-  await renderSoldList();
+  renderSoldList();
   showToast('Sale logged!');
 }
 
-async function deleteSale(saleId) {
-  await deleteSaleById(saleId);
-  await renderSoldList();
+function deleteSale(saleId) {
+  const sales = loadSales().filter(s => s.id !== saleId);
+  saveSales(sales);
+  renderSoldList();
   showToast('Deleted');
 }
 
-async function renderSoldList() {
-  const sales = await loadSales();
+function renderSoldList() {
+  const sales = loadSales();
   const total = sales.reduce((sum, s) => sum + s.price, 0);
   document.getElementById('totalEarned').textContent = total.toLocaleString();
 
@@ -918,26 +884,16 @@ async function renderSoldList() {
 // ── COLLECTION ────────────────────────────────────────
 const ASC_INFO = {"A0": {"max": 1, "chance": 100, "label": "A0 \u2192 A1"}, "A1": {"max": 3, "chance": 75, "label": "A1 \u2192 A2"}, "A2": {"max": 3, "chance": 50, "label": "A2 \u2192 A3"}, "A3": {"max": 5, "chance": 25, "label": "A3 \u2192 A4"}, "A4": {"max": 9, "chance": 12.5, "label": "A4 \u2192 A5"}};
 
-async function loadCollection() {
-  const { data, error } = await sb.from('anigame_collection').select('*').order('id', {ascending: false});
-  if (error) { console.error('loadCollection:', error); return []; }
-  if (!data.length) {
-    // Seed from INITIAL_COLLECTION
-    const rows = INITIAL_COLLECTION.map(e => ({id: e.id, card_id: e.cardId, name: e.name, state: e.state, pity: e.pity, instance_id: e.instanceId, loan_to: e.loanTo || '', notes: e.notes || ''}));
-    const { error: e2 } = await sb.from('anigame_collection').insert(rows);
-    if (e2) console.error('seed col:', e2);
+function loadCollection() {
+  const saved = localStorage.getItem('anigame_collection_v1');
+  if (saved === null) {
+    // First load: seed with initial collection
+    localStorage.setItem('anigame_collection_v1', JSON.stringify(INITIAL_COLLECTION));
     return JSON.parse(JSON.stringify(INITIAL_COLLECTION));
   }
-  return data.map(r => ({id: r.id, cardId: r.card_id, name: r.name, state: r.state, pity: r.pity, instanceId: r.instance_id, loanTo: r.loan_to, notes: r.notes}));
+  try { return JSON.parse(saved); } catch { return []; }
 }
-async function upsertCollectionEntry(e) {
-  const { error } = await sb.from('anigame_collection').upsert({id: e.id, card_id: e.cardId, name: e.name, state: e.state, pity: e.pity, instance_id: e.instanceId || '', loan_to: e.loanTo || '', notes: e.notes || ''});
-  if (error) console.error('upsertCollection:', error);
-}
-async function deleteCollectionById(id) {
-  const { error } = await sb.from('anigame_collection').delete().eq('id', id);
-  if (error) console.error('deleteCollection:', error);
-}
+function saveCollection(data) { localStorage.setItem('anigame_collection_v1', JSON.stringify(data)); }
 
 let _editingCollectionId = null;
 let _collectionSelectedCard = null;
@@ -1022,38 +978,40 @@ function selectCollectionCard(id, name) {
   document.getElementById('collectionCardList').innerHTML = '';
 }
 
-async function saveCollectionEntry() {
+function saveCollectionEntry() {
   if (!_collectionSelectedCard) { showToast('Select a card first'); return; }
   const state = document.getElementById('collectionState').value;
   const loanTo = document.getElementById('collectionLoanTo').value.trim();
   const notes = document.getElementById('collectionNotes').value.trim();
+  const col = loadCollection();
 
-  let instanceId = '';
   if (_editingCollectionId) {
-    const col = await loadCollection();
-    instanceId = col.find(e => e.id === _editingCollectionId)?.instanceId || '';
+    const idx = col.findIndex(e => e.id === _editingCollectionId);
+    if (idx > -1) col[idx] = {...col[idx], state, pity: _pityVal, loanTo, notes};
+  } else {
+    col.unshift({
+      id: Date.now(),
+      cardId: _collectionSelectedCard.id,
+      name: _collectionSelectedCard.name,
+      state, pity: _pityVal, loanTo, notes
+    });
   }
-  const entry = {
-    id: _editingCollectionId || Date.now(),
-    cardId: _collectionSelectedCard.id,
-    name: _collectionSelectedCard.name,
-    state, pity: _pityVal, loanTo, notes, instanceId
-  };
-  await upsertCollectionEntry(entry);
+  saveCollection(col);
   document.getElementById('collectionModalOverlay').classList.remove('open');
-  await renderCollection();
+  renderCollection();
   showToast('Saved!');
 }
 
-async function deleteCollectionEntry() {
-  await deleteCollectionById(_editingCollectionId);
+function deleteCollectionEntry() {
+  const col = loadCollection().filter(e => e.id !== _editingCollectionId);
+  saveCollection(col);
   document.getElementById('collectionModalOverlay').classList.remove('open');
-  await renderCollection();
+  renderCollection();
   showToast('Deleted');
 }
 
-async function renderCollection() {
-  const col = await loadCollection();
+function renderCollection() {
+  const col = loadCollection();
   if (!col.length) {
     document.getElementById('collectionList').innerHTML =
       '<div style="text-align:center;color:var(--muted);padding:40px">No cards added yet.</div>';
@@ -1101,19 +1059,10 @@ async function renderCollection() {
 }
 
 // ── BUILD QUEUE ────────────────────────────────────────
-async function loadBuildQueue() {
-  const { data, error } = await sb.from('anigame_buildqueue').select('*');
-  if (error) { console.error('loadBuildQueue:', error); return []; }
-  return data.map(r => ({id: r.id, cardId: r.card_id, name: r.name, priority: r.priority, goal: r.goal, notes: r.notes}));
+function loadBuildQueue() {
+  try { return JSON.parse(localStorage.getItem('anigame_buildqueue_v1') || '[]'); } catch { return []; }
 }
-async function upsertBuildEntry(e) {
-  const { error } = await sb.from('anigame_buildqueue').upsert({id: e.id, card_id: e.cardId, name: e.name, priority: e.priority, goal: e.goal || '', notes: e.notes || ''});
-  if (error) console.error('upsertBuild:', error);
-}
-async function deleteBuildById(id) {
-  const { error } = await sb.from('anigame_buildqueue').delete().eq('id', id);
-  if (error) console.error('deleteBuild:', error);
-}
+function saveBuildQueue(data) { localStorage.setItem('anigame_buildqueue_v1', JSON.stringify(data)); }
 
 let _editingBuildId = null;
 let _buildSelectedCard = null;
@@ -1172,32 +1121,40 @@ function selectBuildCard(id, name) {
   document.getElementById('buildCardList').innerHTML = '';
 }
 
-async function saveBuildEntry() {
+function saveBuildEntry() {
   if (!_buildSelectedCard) { showToast('Select a card first'); return; }
   const priority = document.getElementById('buildPriority').value;
   const goal = document.getElementById('buildGoal').value.trim();
   const notes = document.getElementById('buildNotes').value.trim();
-  const entry = {
-    id: _editingBuildId || Date.now(),
-    cardId: _buildSelectedCard.id,
-    name: _buildSelectedCard.name,
-    priority, goal, notes
-  };
-  await upsertBuildEntry(entry);
+  const queue = loadBuildQueue();
+
+  if (_editingBuildId) {
+    const idx = queue.findIndex(e => e.id === _editingBuildId);
+    if (idx > -1) queue[idx] = {...queue[idx], priority, goal, notes};
+  } else {
+    queue.push({
+      id: Date.now(),
+      cardId: _buildSelectedCard.id,
+      name: _buildSelectedCard.name,
+      priority, goal, notes
+    });
+  }
+  saveBuildQueue(queue);
   document.getElementById('buildModalOverlay').classList.remove('open');
-  await renderBuildQueue();
+  renderBuildQueue();
   showToast('Saved!');
 }
 
-async function deleteBuildEntry() {
-  await deleteBuildById(_editingBuildId);
+function deleteBuildEntry() {
+  const queue = loadBuildQueue().filter(e => e.id !== _editingBuildId);
+  saveBuildQueue(queue);
   document.getElementById('buildModalOverlay').classList.remove('open');
-  await renderBuildQueue();
+  renderBuildQueue();
   showToast('Deleted');
 }
 
-async function renderBuildQueue() {
-  const queue = await loadBuildQueue();
+function renderBuildQueue() {
+  const queue = loadBuildQueue();
   if (!queue.length) {
     document.getElementById('buildList').innerHTML =
       '<div style="text-align:center;color:var(--muted);padding:40px">No cards in build queue.</div>';
@@ -1231,14 +1188,14 @@ async function renderBuildQueue() {
 }
 
 // ── EXPORT / IMPORT ───────────────────────────────────
-async function exportData() {
+function exportData() {
   const data = {
     version: 1,
     exported: new Date().toISOString(),
-    inventory: inv,
-    sales: await loadSales(),
-    collection: await loadCollection(),
-    buildQueue: await loadBuildQueue()
+    inventory: loadInv(),
+    sales: loadSales(),
+    collection: loadCollection(),
+    buildQueue: loadBuildQueue()
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
@@ -1251,38 +1208,21 @@ async function exportData() {
   showToast('Exported!');
 }
 
-async function importData(event) {
+function importData(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = async (e) => {
+  reader.onload = (e) => {
     try {
       const data = JSON.parse(e.target.result);
       if (!confirm('This will replace ALL your current data (inventory, sales, collection, build queue) with the imported file. Continue?')) {
         event.target.value = '';
         return;
       }
-      if (data.inventory) {
-        inv = data.inventory;
-        const rows = Object.entries(inv).map(([card_id, v]) => ({card_id, ur: v.ur||0, sr: v.sr||0, ur_price: v.ur_price||'', sr_price: v.sr_price||''}));
-        await sb.from('anigame_inventory').delete().neq('card_id','__none__');
-        await sb.from('anigame_inventory').insert(rows);
-      }
-      if (data.sales) {
-        await sb.from('anigame_sales').delete().neq('id',0);
-        const srows = data.sales.map(s => ({id:s.id, card_id:s.cardId, name:s.name, rarity:s.rarity, instance_id:s.instanceId||'', price:s.price, date:s.date}));
-        if (srows.length) await sb.from('anigame_sales').insert(srows);
-      }
-      if (data.collection) {
-        await sb.from('anigame_collection').delete().neq('id',0);
-        const crows = data.collection.map(e => ({id:e.id, card_id:e.cardId, name:e.name, state:e.state, pity:e.pity, instance_id:e.instanceId||'', loan_to:e.loanTo||'', notes:e.notes||''}));
-        if (crows.length) await sb.from('anigame_collection').insert(crows);
-      }
-      if (data.buildQueue) {
-        await sb.from('anigame_buildqueue').delete().neq('id',0);
-        const brows = data.buildQueue.map(e => ({id:e.id, card_id:e.cardId, name:e.name, priority:e.priority, goal:e.goal||'', notes:e.notes||''}));
-        if (brows.length) await sb.from('anigame_buildqueue').insert(brows);
-      }
+      if (data.inventory) { inv = data.inventory; saveInv(inv); }
+      if (data.sales) saveSales(data.sales);
+      if (data.collection) saveCollection(data.collection);
+      if (data.buildQueue) saveBuildQueue(data.buildQueue);
       populateFilters();
       render();
       showToast('Imported successfully!');
@@ -1308,41 +1248,8 @@ document.getElementById('seriesFilter').addEventListener('change', render);
 document.getElementById('rarityFilter').addEventListener('change', render);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { _adjustInv={}; document.getElementById('modalOverlay').classList.remove('open'); } });
 
-async function init() {
-  document.getElementById('loadingText').textContent = 'Loading inventory...';
-  document.getElementById('loadingOverlay').style.display = 'flex';
-  try {
-    await loadInv();
-    populateFilters();
-    render();
-  } catch(err) {
-    console.error('Init error:', err);
-    document.getElementById('loadingText').textContent = 'Error loading: ' + err.message;
-    return;
-  }
-  document.getElementById('loadingOverlay').style.display = 'none';
-
-  // Real-time subscriptions — refresh relevant tab when remote changes happen
-  sb.channel('anigame-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'anigame_inventory' }, async () => {
-      await loadInv();
-      populateFilters();
-      if (activeTab === 'inventory') render();
-      if (activeTab === 'add') renderAddList();
-      if (activeTab === 'buildqueue') renderBuildQueue();
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'anigame_sales' }, async () => {
-      if (activeTab === 'sold') await renderSoldList();
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'anigame_collection' }, async () => {
-      if (activeTab === 'collection') await renderCollection();
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'anigame_buildqueue' }, async () => {
-      if (activeTab === 'buildqueue') await renderBuildQueue();
-    })
-    .subscribe();
-}
-init();
+populateFilters();
+render();
 </script>
 </body>
 </html>
