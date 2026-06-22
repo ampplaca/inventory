@@ -42,7 +42,7 @@
 
   .card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:transform 0.15s,border-color 0.15s,box-shadow 0.15s;cursor:pointer;position:relative}
   .card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 8px 24px rgba(124,92,252,0.18)}
-  .card-img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--dark)}
+  .card-img{display:none}
   .qty-badge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.8);border:1px solid var(--accent);color:var(--accent2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.82rem;padding:2px 7px;border-radius:20px;display:flex;gap:4px}
   .qty-ur{color:var(--accent2)} .qty-sr{color:var(--gold)}
   .elem-badge{font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:0.5px;text-transform:uppercase;display:inline-block}
@@ -72,7 +72,7 @@
   .modal-overlay.open{display:flex}
   .modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto}
   .modal-top{display:flex}
-  .modal-img{width:180px;min-width:180px;object-fit:cover;border-radius:16px 0 0 0}
+  .modal-img{display:none}
   .modal-header{padding:16px;flex:1;display:flex;flex-direction:column;gap:6px}
   .modal-name{font-family:'Rajdhani',sans-serif;font-size:1.4rem;font-weight:700;line-height:1.1}
   .modal-series{color:var(--muted);font-size:0.82rem}
@@ -538,6 +538,10 @@ function render() {
           <div class="stat"><div class="stat-label">DEF</div><div class="stat-val">${c.def}</div></div>
           <div class="stat"><div class="stat-label">SPD</div><div class="stat-val">${c.spd}</div></div>
         </div>
+        ${(c.inv.ur_price || c.inv.sr_price) ? `<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;font-size:0.72rem">
+          ${c.inv.ur_price ? `<span style="color:var(--accent2)">UR: <span style="color:var(--gold);font-weight:600">${parseInt(c.inv.ur_price.toString().replace(/,/g,'')).toLocaleString()}</span></span>` : ''}
+          ${c.inv.sr_price ? `<span style="color:var(--muted)">SR: <span style="color:var(--gold);font-weight:600">${parseInt(c.inv.sr_price.toString().replace(/,/g,'')).toLocaleString()}</span></span>` : ''}
+        </div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -1023,7 +1027,15 @@ function renderCollection() {
         const info = ASC_INFO[e.state];
         const isLoaned = e.loanTo && e.loanTo.trim();
         const stateLabel = e.state === 'evo3' ? 'Evo 3' : e.state;
-        const stateColor = e.state === 'evo3' ? 'var(--accent2)' : e.state === 'A5' ? 'var(--gold)' : 'var(--green)';
+        const stateColors = {
+          'evo3': '#a0a0b0',
+          'A1':   '#4ade80',
+          'A2':   '#60a5fa',
+          'A3':   '#c084fc',
+          'A4':   '#f5a623',
+          'A5':   '#f87171',
+        };
+        const stateColor = stateColors[e.state] || 'var(--accent2)';
         let pityHtml = '';
         if (info && e.state !== 'A5') {
           const pity = e.pity || 0;
