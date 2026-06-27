@@ -43,7 +43,7 @@
 
   .card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:transform 0.15s,border-color 0.15s,box-shadow 0.15s;cursor:pointer;position:relative}
   .card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 8px 24px rgba(124,92,252,0.18)}
-  .card-img{display:none}
+  .card-img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--dark)}
   .qty-badge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.8);border:1px solid var(--accent);color:var(--accent2);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.82rem;padding:2px 7px;border-radius:20px;display:flex;gap:4px}
   .qty-ur{color:var(--accent2)} .qty-sr{color:var(--gold)}
   .elem-badge{font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:0.5px;text-transform:uppercase;display:inline-block}
@@ -73,7 +73,7 @@
   .modal-overlay.open{display:flex}
   .modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto}
   .modal-top{display:flex}
-  .modal-img{display:none}
+  .modal-img{width:180px;min-width:180px;object-fit:cover;border-radius:16px 0 0 0}
   .modal-header{padding:16px;flex:1;display:flex;flex-direction:column;gap:6px}
   .modal-name{font-family:'Rajdhani',sans-serif;font-size:1.4rem;font-weight:700;line-height:1.1}
   .modal-series{color:var(--muted);font-size:0.82rem}
@@ -151,6 +151,8 @@
   <div class="tab" onclick="switchTab('sold')">📋 Sold</div>
   <div class="tab" onclick="switchTab('collection')">⚔️ Collection</div>
   <div class="tab" onclick="switchTab('buildqueue')">🔨 Build Queue</div>
+  <div class="tab" onclick="switchTab('rotation')">📅 Rotations</div>
+  <div class="tab" onclick="switchTab('raidlist')">⚔️ Raid List</div>
 </div>
 
 <div id="inventoryTab">
@@ -263,6 +265,66 @@
 </div>
 
 <!-- Collection Modal -->
+
+<div id="rotationTab" style="display:none">
+  <div class="add-panel">
+    <!-- FRAG SHOP -->
+    <div style="margin-bottom:28px">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700;margin-bottom:4px">Fragment Shop Rotation</div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:14px">38-card cycle · updates daily at reset</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+        <input id="fragSearch" type="text" placeholder="Search for a card..." oninput="renderFragRotation()"
+          style="background:var(--dark);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:0.88rem;outline:none;width:240px">
+        <button onclick="pinFragCard()" style="background:var(--accent);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:0.82rem;cursor:pointer">📌 Pin searched card</button>
+        <button onclick="clearFragPins()" style="background:var(--dark);border:1px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:8px;font-size:0.82rem;cursor:pointer">Clear pins</button>
+      </div>
+      <div id="fragRotationList"></div>
+    </div>
+    <div style="border-top:1px solid var(--border);margin-bottom:24px"></div>
+    <!-- CLAN SHOP -->
+    <div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700;margin-bottom:4px">Clan Shop UR Rotation</div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:14px">Grand Blue series · every weekend (Sat–Sun UTC)</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+        <input id="clanSearch" type="text" placeholder="Search for a card..." oninput="renderClanShop()"
+          style="background:var(--dark);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:0.88rem;outline:none;width:240px">
+        <button onclick="pinClanCard()" style="background:var(--accent);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:0.82rem;cursor:pointer">📌 Pin searched card</button>
+        <button onclick="clearClanPins()" style="background:var(--dark);border:1px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:8px;font-size:0.82rem;cursor:pointer">Clear pins</button>
+      </div>
+      <div id="clanShopList"></div>
+    </div>
+  </div>
+</div>
+
+<div id="raidlistTab" style="display:none">
+  <div class="add-panel">
+    <div style="font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700;margin-bottom:4px">Raid List Generator</div>
+    <div style="font-size:0.82rem;color:var(--muted);margin-bottom:16px">Generates a card ID list for <code style="background:var(--dark);padding:2px 6px;border-radius:4px">.rd lobbies</code> based on market prices</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end">
+      <div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Min SR Price</div>
+        <input id="raidMinSR" type="text" placeholder="e.g. 50000"
+          style="background:var(--dark);border:1px solid var(--border);color:var(--gold);padding:8px 12px;border-radius:8px;font-size:0.88rem;outline:none;width:140px">
+      </div>
+      <div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Min UR Price</div>
+        <input id="raidMinUR" type="text" placeholder="e.g. 300000"
+          style="background:var(--dark);border:1px solid var(--border);color:var(--accent2);padding:8px 12px;border-radius:8px;font-size:0.88rem;outline:none;width:140px">
+      </div>
+      <div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Match</div>
+        <select id="raidMatch" style="background:var(--dark);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:0.88rem;outline:none">
+          <option value="or">SR OR UR</option>
+          <option value="and">SR AND UR</option>
+          <option value="sr">SR only</option>
+          <option value="ur">UR only</option>
+        </select>
+      </div>
+      <button onclick="generateRaidList()" style="background:var(--accent);border:none;color:#fff;padding:9px 18px;border-radius:8px;font-size:0.88rem;cursor:pointer;font-weight:600">Generate</button>
+    </div>
+    <div id="raidOutput"></div>
+  </div>
+</div>
 <div class="modal-overlay" id="collectionModalOverlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:460px">
     <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
@@ -794,17 +856,21 @@ async function addCard(cardId) {
 
 function switchTab(tab) {
   activeTab = tab;
-  const tabs = ['inventory','add','sold','collection','buildqueue'];
+  const tabs = ['inventory','add','sold','collection','buildqueue','rotation','raidlist'];
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabs[i]===tab));
   document.getElementById('inventoryTab').style.display = tab === 'inventory' ? '' : 'none';
   document.getElementById('addTab').style.display = tab === 'add' ? '' : 'none';
   document.getElementById('soldTab').style.display = tab === 'sold' ? '' : 'none';
   document.getElementById('collectionTab').style.display = tab === 'collection' ? '' : 'none';
   document.getElementById('buildqueueTab').style.display = tab === 'buildqueue' ? '' : 'none';
+  document.getElementById('rotationTab').style.display = tab === 'rotation' ? '' : 'none';
+  document.getElementById('raidlistTab').style.display = tab === 'raidlist' ? '' : 'none';
   if (tab === 'add') renderAddList();
   if (tab === 'sold') renderSoldList();
   if (tab === 'collection') renderCollection();
   if (tab === 'buildqueue') renderBuildQueue();
+  if (tab === 'rotation') { renderFragRotation(); renderClanShop(); }
+  if (tab === 'raidlist') renderRaidOutput();
 
 }
 
@@ -1239,6 +1305,251 @@ async function renderBuildQueue() {
       }).join('')}
     </div>
   `;
+}
+
+
+// ── ROTATION DATA ─────────────────────────────────────────────────────────────
+const FRAG_ROTATION = ["Ruby Rose", "Weiss Schnee", "Mai Sakurajima", "Umaru Doma", "Hayase Nagatoro", "Komi Shouko", "Kusuo Saiki", "Kokomi Teruhashi", "Doraemon", "Holo", "Chihiro Rokuhira", "Rikka Takanashi", "Conan Edogawa", "Yang Xiao Long", "Blake Belladonna", "Sora (Kingdom Hearts)", "Riku", "Kairi", "Roxas", "Tifa Lockhart", "Cloud Strife", "Squall Leonhart", "Sephiroth", "Batman", "Joker", "Ekko", "Caitlyn Kiramman", "Bai Yuechu", "Tushan Susu", "Dante", "Vergil", "Chihiro Ogino", "Haku", "Ponyo", "San", "Superman", "Totoro", "Spongebob"];
+const FRAG_ANCHOR_DATE = '2026-05-11';
+const FRAG_ANCHOR_INDEX = 36;
+const CLAN_SCHEDULE = [{"name": "Iori Kitahara", "sat": "2026-06-27", "sun": "2026-06-28", "cycle": 1}, {"name": "Kohei Imamura", "sat": "2026-07-04", "sun": "2026-07-05", "cycle": 1}, {"name": "Nanaka Kotegawa", "sat": "2026-07-11", "sun": "2026-07-12", "cycle": 1}, {"name": "Ryujiro Kotobuki", "sat": "2026-07-18", "sun": "2026-07-19", "cycle": 1}, {"name": "Shinji Tokita", "sat": "2026-07-25", "sun": "2026-07-26", "cycle": 1}, {"name": "Aina Yoshiwara", "sat": "2026-08-01", "sun": "2026-08-02", "cycle": 2}, {"name": "Azusa Hamaoka", "sat": "2026-08-08", "sun": "2026-08-09", "cycle": 2}, {"name": "Chisa Kotegawa", "sat": "2026-08-15", "sun": "2026-08-16", "cycle": 2}, {"name": "Iori Kitahara", "sat": "2026-08-22", "sun": "2026-08-23", "cycle": 2}, {"name": "Kohei Imamura", "sat": "2026-08-29", "sun": "2026-08-30", "cycle": 2}, {"name": "Nanaka Kotegawa", "sat": "2026-09-05", "sun": "2026-09-06", "cycle": 2}, {"name": "Ryujiro Kotobuki", "sat": "2026-09-12", "sun": "2026-09-13", "cycle": 2}, {"name": "Shinji Tokita", "sat": "2026-09-19", "sun": "2026-09-20", "cycle": 2}];
+const CLAN_DONE = [{"name": "Aina Yoshiwara", "cycle": 1, "done": true}, {"name": "Azusa Hamaoka", "cycle": 1, "done": true}, {"name": "Chisa Kotegawa", "cycle": 1, "done": true}];
+
+let _fragPins = JSON.parse(localStorage.getItem('frag_pins') || '[]');
+let _clanPins = JSON.parse(localStorage.getItem('clan_pins') || '[]');
+
+function getFragToday() {
+  const anchor = new Date(FRAG_ANCHOR_DATE + 'T00:00:00Z');
+  const today = new Date();
+  today.setUTCHours(0,0,0,0);
+  const diffDays = Math.floor((today - anchor) / 86400000);
+  const idx = ((FRAG_ANCHOR_INDEX + diffDays) % FRAG_ROTATION.length + FRAG_ROTATION.length) % FRAG_ROTATION.length;
+  return idx;
+}
+
+function renderFragRotation() {
+  const q = document.getElementById('fragSearch').value.toLowerCase().trim();
+  const todayIdx = getFragToday();
+  const today = new Date();
+  today.setUTCHours(0,0,0,0);
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today.getTime() + i * 86400000);
+    const idx = (todayIdx + i) % FRAG_ROTATION.length;
+    days.push({ date: d, cardName: FRAG_ROTATION[idx], idx });
+  }
+
+  const pinned = _fragPins.map(name => {
+    const idx = FRAG_ROTATION.indexOf(name);
+    if (idx === -1) return null;
+    const daysUntil = ((idx - todayIdx) % FRAG_ROTATION.length + FRAG_ROTATION.length) % FRAG_ROTATION.length;
+    const d = new Date(today.getTime() + daysUntil * 86400000);
+    return { cardName: name, date: d, daysUntil, pinned: true };
+  }).filter(Boolean);
+
+  let out = '';
+
+  if (pinned.length) {
+    out += '<div style="margin-bottom:14px"><div style="font-size:0.75rem;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700">📌 Pinned</div>';
+    out += pinned.map(p => {
+      const dateStr = p.date.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});
+      const when = p.daysUntil === 0 ? '<span style="color:var(--green)">Today!</span>' : 'in ' + p.daysUntil + ' days';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--card-bg);border:1px solid var(--accent);border-radius:8px;margin-bottom:6px">' +
+        '<div style="font-family:Rajdhani,sans-serif;font-weight:700;flex:1">' + p.cardName + '</div>' +
+        '<div style="font-size:0.82rem;color:var(--muted)">' + dateStr + ' (' + when + ')</div>' +
+        '<button onclick="_fragPins=_fragPins.filter(n=>n!=='' + p.cardName.replace(/'/g,"\'") + '');localStorage.setItem('frag_pins',JSON.stringify(_fragPins));renderFragRotation()" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:0.9rem">✕</button>' +
+        '</div>';
+    }).join('');
+    out += '</div>';
+  }
+
+  out += '<div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700">Next 7 Days</div>';
+  out += days.map((d, i) => {
+    const isToday = i === 0;
+    const matches = q && d.cardName.toLowerCase().includes(q);
+    const dateStr = d.date.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});
+    const border = matches ? 'var(--accent2)' : isToday ? 'var(--accent)' : 'var(--border)';
+    const bg = isToday ? 'var(--panel)' : 'var(--card-bg)';
+    const nameColor = isToday ? 'var(--accent2)' : 'var(--text)';
+    const todayBadge = isToday ? ' <span style="font-size:0.7rem;color:var(--green);font-weight:400">TODAY</span>' : '';
+    return '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:' + bg + ';border:1px solid ' + border + ';border-radius:8px;margin-bottom:5px">' +
+      '<div style="font-size:0.75rem;color:var(--muted);width:80px">' + dateStr + '</div>' +
+      '<div style="font-family:Rajdhani,sans-serif;font-weight:700;flex:1;color:' + nameColor + '">' + d.cardName + todayBadge + '</div>' +
+      '<div style="font-size:0.72rem;color:var(--muted)">Day ' + (d.idx + 1) + '/38</div>' +
+      '</div>';
+  }).join('') + (out.length === 0 ? '' : '');
+
+  // Show full list filtered by search if search active
+  if (q) {
+    out += '<div style="margin-top:12px;font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700">All matching cards in rotation</div>';
+    FRAG_ROTATION.forEach((name, idx) => {
+      if (!name.toLowerCase().includes(q)) return;
+      const daysUntil = ((idx - todayIdx) % FRAG_ROTATION.length + FRAG_ROTATION.length) % FRAG_ROTATION.length;
+      const d = new Date(today.getTime() + daysUntil * 86400000);
+      const dateStr = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});
+      out += '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--card-bg);border:1px solid var(--accent2);border-radius:8px;margin-bottom:5px">' +
+        '<div style="font-family:Rajdhani,sans-serif;font-weight:700;flex:1">' + name + '</div>' +
+        '<div style="font-size:0.82rem;color:var(--muted)">' + dateStr + ' (in ' + daysUntil + ' days)</div>' +
+        '<div style="font-size:0.72rem;color:var(--muted)">Day ' + (idx+1) + '/38</div>' +
+        '</div>';
+    });
+  }
+
+  document.getElementById('fragRotationList').innerHTML = out;
+}
+
+function pinFragCard() {
+  const q = document.getElementById('fragSearch').value.trim();
+  if (!q) return;
+  const match = FRAG_ROTATION.find(n => n.toLowerCase().includes(q.toLowerCase()));
+  if (!match) { showToast('Card not found in rotation'); return; }
+  if (!_fragPins.includes(match)) {
+    _fragPins.push(match);
+    localStorage.setItem('frag_pins', JSON.stringify(_fragPins));
+    renderFragRotation();
+    showToast('Pinned: ' + match);
+  }
+}
+
+function clearFragPins() {
+  _fragPins = [];
+  localStorage.setItem('frag_pins', JSON.stringify(_fragPins));
+  renderFragRotation();
+}
+
+function renderClanShop() {
+  const q = document.getElementById('clanSearch').value.toLowerCase().trim();
+  const today = new Date();
+  today.setUTCHours(0,0,0,0);
+  let out = '';
+
+  // Done
+  out += '<div style="margin-bottom:14px">';
+  out += '<div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700">Cycle 1 — Completed</div>';
+  out += CLAN_DONE.map(c =>
+    '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;margin-bottom:5px;opacity:0.5">' +
+    '<div style="font-family:Rajdhani,sans-serif;font-weight:700;flex:1">' + c.name + ' <span style="font-size:0.72rem;color:var(--muted)">Cycle 1</span></div>' +
+    '<div style="font-size:0.75rem;color:var(--muted)">✓ Done</div></div>'
+  ).join('');
+  out += '</div>';
+
+  // Pinned
+  if (_clanPins.length) {
+    out += '<div style="margin-bottom:14px"><div style="font-size:0.75rem;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700">📌 Pinned</div>';
+    _clanPins.forEach(name => {
+      const entries = CLAN_SCHEDULE.filter(c => c.name === name);
+      entries.forEach(e => {
+        const sat = new Date(e.sat + 'T00:00:00Z');
+        const sun = new Date(e.sun + 'T23:59:59Z');
+        const isCurrent = sat <= today && sun >= today;
+        const isPast = sun < today;
+        const color = isCurrent ? 'var(--green)' : 'var(--muted)';
+        const dateStr = isCurrent ? '🟢 NOW' : e.sat + ' – ' + e.sun;
+        out += '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--card-bg);border:1px solid var(--accent);border-radius:8px;margin-bottom:5px' + (isPast ? ';opacity:0.5' : '') + '">' +
+          '<div style="font-family:Rajdhani,sans-serif;font-weight:700;flex:1">' + e.name + ' <span style="font-size:0.72rem;color:var(--muted)">C' + e.cycle + '</span></div>' +
+          '<div style="font-size:0.82rem;color:' + color + '">' + dateStr + '</div>' +
+          '<button onclick="_clanPins=_clanPins.filter(n=>n!=='' + e.name.replace(/'/g,"\'") + '');localStorage.setItem('clan_pins',JSON.stringify(_clanPins));renderClanShop()" style="background:transparent;border:none;color:var(--muted);cursor:pointer">✕</button>' +
+          '</div>';
+      });
+    });
+    out += '</div>';
+  }
+
+  // Upcoming
+  out += '<div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700">Schedule</div>';
+  CLAN_SCHEDULE.forEach(e => {
+    const sat = new Date(e.sat + 'T00:00:00Z');
+    const sun = new Date(e.sun + 'T23:59:59Z');
+    const isPast = sun < today;
+    const isCurrent = sat <= today && sun >= today;
+    const matches = q && e.name.toLowerCase().includes(q);
+    const border = matches ? 'var(--accent2)' : isCurrent ? 'var(--accent)' : 'var(--border)';
+    const bg = isCurrent ? 'var(--panel)' : 'var(--card-bg)';
+    const color = isCurrent ? 'var(--green)' : 'var(--muted)';
+    const dateStr = isCurrent ? '🟢 NOW' : e.sat + ' – ' + e.sun;
+    out += '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:' + bg + ';border:1px solid ' + border + ';border-radius:8px;margin-bottom:5px' + (isPast ? ';opacity:0.4' : '') + '">' +
+      '<div style="font-family:Rajdhani,sans-serif;font-weight:700;flex:1">' + e.name + ' <span style="font-size:0.72rem;color:var(--muted)">Cycle ' + e.cycle + '</span></div>' +
+      '<div style="font-size:0.82rem;color:' + color + '">' + dateStr + '</div>' +
+      '</div>';
+  });
+
+  document.getElementById('clanShopList').innerHTML = out;
+}
+
+function pinClanCard() {
+  const q = document.getElementById('clanSearch').value.trim();
+  if (!q) return;
+  const match = CLAN_SCHEDULE.find(c => c.name.toLowerCase().includes(q.toLowerCase()));
+  if (!match) { showToast('Card not found in schedule'); return; }
+  if (!_clanPins.includes(match.name)) {
+    _clanPins.push(match.name);
+    localStorage.setItem('clan_pins', JSON.stringify(_clanPins));
+    renderClanShop();
+    showToast('Pinned: ' + match.name);
+  }
+}
+
+function clearClanPins() {
+  _clanPins = [];
+  localStorage.setItem('clan_pins', JSON.stringify(_clanPins));
+  renderClanShop();
+}
+
+// ── RAID LIST ──────────────────────────────────────────────────────────────────
+function renderRaidOutput() {
+  document.getElementById('raidOutput').innerHTML = '';
+}
+
+async function generateRaidList() {
+  const minSR = parseInt(document.getElementById('raidMinSR').value.replace(/,/g,'')) || 0;
+  const minUR = parseInt(document.getElementById('raidMinUR').value.replace(/,/g,'')) || 0;
+  const match = document.getElementById('raidMatch').value;
+  const output = document.getElementById('raidOutput');
+
+  output.innerHTML = '<div style="color:var(--muted);font-size:0.88rem">Loading prices...</div>';
+
+  const { data, error } = await sb.from('anigame_card_prices').select('card_id,card_name,sr_price,ur_price');
+  if (error) {
+    output.innerHTML = '<div style="color:var(--red)">Error: ' + error.message + '</div>';
+    return;
+  }
+
+  const qualifying = data.filter(c => {
+    const sr = parseInt(c.sr_price) || 0;
+    const ur = parseInt(c.ur_price) || 0;
+    if (match === 'or')  return (minSR > 0 && sr >= minSR) || (minUR > 0 && ur >= minUR);
+    if (match === 'and') return sr >= minSR && ur >= minUR;
+    if (match === 'sr')  return minSR > 0 && sr >= minSR;
+    if (match === 'ur')  return minUR > 0 && ur >= minUR;
+    return false;
+  });
+
+  if (!qualifying.length) {
+    output.innerHTML = '<div style="color:var(--muted);padding:20px 0">No cards match those thresholds.</div>';
+    return;
+  }
+
+  const ids = qualifying.map(c => c.card_id).join(',');
+  const cmd = '.rd lobbies -c ' + ids;
+
+  output.innerHTML =
+    '<div style="margin-bottom:10px;font-size:0.82rem;color:var(--muted)"><span style="color:var(--accent2);font-weight:600">' + qualifying.length + '</span> cards qualify</div>' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
+    '<code style="background:var(--dark);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:0.82rem;color:var(--accent2);flex:1;word-break:break-all">' + cmd + '</code>' +
+    '<button onclick="navigator.clipboard.writeText(' + "'" + cmd + "'" + ')" style="background:var(--accent);border:none;color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:0.82rem;white-space:nowrap">Copy</button>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px">' +
+    qualifying.map(c =>
+      '<div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:0.82rem">' +
+      '<div style="font-family:Rajdhani,sans-serif;font-weight:700">' + c.card_name + '</div>' +
+      '<div style="color:var(--muted);font-size:0.75rem">' +
+      (c.sr_price ? 'SR: <span style="color:var(--gold)">' + parseInt(c.sr_price).toLocaleString() + '</span>' : '') +
+      (c.sr_price && c.ur_price ? ' · ' : '') +
+      (c.ur_price ? 'UR: <span style="color:var(--accent2)">' + parseInt(c.ur_price).toLocaleString() + '</span>' : '') +
+      '</div></div>'
+    ).join('') +
+    '</div>';
 }
 
 // ── EXPORT / IMPORT ───────────────────────────────────
