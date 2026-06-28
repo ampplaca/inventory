@@ -1358,7 +1358,7 @@ function renderFragRotation() {
       return '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--card-bg);border:1px solid var(--accent);border-radius:8px;margin-bottom:6px">' +
         '<div style="font-family:Rajdhani,sans-serif;font-weight:700;flex:1">' + p.cardName + '</div>' +
         '<div style="font-size:0.82rem;color:var(--muted)">' + dateStr + ' (' + when + ')</div>' +
-        '<button onclick="_fragPins=_fragPins.filter(n=>n!=='' + p.cardName.replace(/'/g,"\'") + '');localStorage.setItem('frag_pins',JSON.stringify(_fragPins));renderFragRotation()" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:0.9rem">✕</button>' +
+        '<button onclick="removeFrag(this)" data-name="' + p.cardName.replace(/"/g,'&quot;') + '" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:0.9rem">✕</button>' +
         '</div>';
     }).join('');
     out += '</div>';
@@ -1449,7 +1449,7 @@ function renderClanShop() {
         out += '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--card-bg);border:1px solid var(--accent);border-radius:8px;margin-bottom:5px' + (isPast ? ';opacity:0.5' : '') + '">' +
           '<div style="font-family:Rajdhani,sans-serif;font-weight:700;flex:1">' + e.name + ' <span style="font-size:0.72rem;color:var(--muted)">C' + e.cycle + '</span></div>' +
           '<div style="font-size:0.82rem;color:' + color + '">' + dateStr + '</div>' +
-          '<button onclick="_clanPins=_clanPins.filter(n=>n!=='' + e.name.replace(/'/g,"\'") + '');localStorage.setItem('clan_pins',JSON.stringify(_clanPins));renderClanShop()" style="background:transparent;border:none;color:var(--muted);cursor:pointer">✕</button>' +
+          '<button onclick="removeClan(this)" data-name="' + e.name.replace(/"/g,'&quot;') + '" style="background:transparent;border:none;color:var(--muted);cursor:pointer">✕</button>' +
           '</div>';
       });
     });
@@ -1552,6 +1552,18 @@ async function generateRaidList() {
     '</div>';
 }
 
+function removeFrag(btn) {
+  const name = btn.getAttribute('data-name');
+  _fragPins = _fragPins.filter(n => n !== name);
+  localStorage.setItem('frag_pins', JSON.stringify(_fragPins));
+  renderFragRotation();
+}
+function removeClan(btn) {
+  const name = btn.getAttribute('data-name');
+  _clanPins = _clanPins.filter(n => n !== name);
+  localStorage.setItem('clan_pins', JSON.stringify(_clanPins));
+  renderClanShop();
+}
 // ── EXPORT / IMPORT ───────────────────────────────────
 async function exportData() {
   const data = {
