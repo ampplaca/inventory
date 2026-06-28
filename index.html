@@ -293,6 +293,19 @@
       </div>
       <div id="clanShopList"></div>
     </div>
+    <div style="border-top:1px solid var(--border);margin-bottom:24px;margin-top:24px"></div>
+    <!-- LOCATION SHOP -->
+    <div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700;margin-bottom:4px">Location Shop Rotation</div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:14px">Loc 1–99 · rotates every 12 hours (00:00 & 12:00 UTC)</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+        <input id="locSearch" type="text" placeholder="Search location or series..." oninput="renderLocShop()"
+          style="background:var(--dark);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:0.88rem;outline:none;width:240px">
+        <button onclick="pinLocCard()" style="background:var(--accent);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:0.82rem;cursor:pointer">📌 Pin searched</button>
+        <button onclick="clearLocPins()" style="background:var(--dark);border:1px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:8px;font-size:0.82rem;cursor:pointer">Clear pins</button>
+      </div>
+      <div id="locShopList"></div>
+    </div>
   </div>
 </div>
 
@@ -869,7 +882,7 @@ function switchTab(tab) {
   if (tab === 'sold') renderSoldList();
   if (tab === 'collection') renderCollection();
   if (tab === 'buildqueue') renderBuildQueue();
-  if (tab === 'rotation') { renderFragRotation(); renderClanShop(); }
+  if (tab === 'rotation') { renderFragRotation(); renderClanShop(); renderLocShop(); }
   if (tab === 'raidlist') renderRaidOutput();
 
 }
@@ -1310,8 +1323,8 @@ async function renderBuildQueue() {
 
 // ── ROTATION DATA ─────────────────────────────────────────────────────────────
 const FRAG_ROTATION = ["Ruby Rose", "Weiss Schnee", "Mai Sakurajima", "Umaru Doma", "Hayase Nagatoro", "Komi Shouko", "Kusuo Saiki", "Kokomi Teruhashi", "Doraemon", "Holo", "Chihiro Rokuhira", "Rikka Takanashi", "Conan Edogawa", "Yang Xiao Long", "Blake Belladonna", "Sora (Kingdom Hearts)", "Riku", "Kairi", "Roxas", "Tifa Lockhart", "Cloud Strife", "Squall Leonhart", "Sephiroth", "Batman", "Joker", "Ekko", "Caitlyn Kiramman", "Bai Yuechu", "Tushan Susu", "Dante", "Vergil", "Chihiro Ogino", "Haku", "Ponyo", "San", "Superman", "Totoro", "Spongebob"];
-const FRAG_ANCHOR_DATE = '2026-05-11';
-const FRAG_ANCHOR_INDEX = 36;
+const FRAG_ANCHOR_DATE = '2026-06-28';
+const FRAG_ANCHOR_INDEX = 6;
 const CLAN_SCHEDULE = [{"name": "Iori Kitahara", "sat": "2026-06-27", "sun": "2026-06-28", "cycle": 1}, {"name": "Kohei Imamura", "sat": "2026-07-04", "sun": "2026-07-05", "cycle": 1}, {"name": "Nanaka Kotegawa", "sat": "2026-07-11", "sun": "2026-07-12", "cycle": 1}, {"name": "Ryujiro Kotobuki", "sat": "2026-07-18", "sun": "2026-07-19", "cycle": 1}, {"name": "Shinji Tokita", "sat": "2026-07-25", "sun": "2026-07-26", "cycle": 1}, {"name": "Aina Yoshiwara", "sat": "2026-08-01", "sun": "2026-08-02", "cycle": 2}, {"name": "Azusa Hamaoka", "sat": "2026-08-08", "sun": "2026-08-09", "cycle": 2}, {"name": "Chisa Kotegawa", "sat": "2026-08-15", "sun": "2026-08-16", "cycle": 2}, {"name": "Iori Kitahara", "sat": "2026-08-22", "sun": "2026-08-23", "cycle": 2}, {"name": "Kohei Imamura", "sat": "2026-08-29", "sun": "2026-08-30", "cycle": 2}, {"name": "Nanaka Kotegawa", "sat": "2026-09-05", "sun": "2026-09-06", "cycle": 2}, {"name": "Ryujiro Kotobuki", "sat": "2026-09-12", "sun": "2026-09-13", "cycle": 2}, {"name": "Shinji Tokita", "sat": "2026-09-19", "sun": "2026-09-20", "cycle": 2}];
 const CLAN_DONE = [{"name": "Aina Yoshiwara", "cycle": 1, "done": true}, {"name": "Azusa Hamaoka", "cycle": 1, "done": true}, {"name": "Chisa Kotegawa", "cycle": 1, "done": true}];
 
@@ -1550,6 +1563,148 @@ async function generateRaidList() {
       '</div></div>'
     ).join('') +
     '</div>';
+}
+
+
+// ── LOCATION SHOP ──────────────────────────────────────────────────────────────
+const LOCATIONS = {"1": "Steins Gate", "2": "Fate", "3": "Black Clover", "4": "The Rising Of The Shield Hero", "5": "7 Deadly Sins", "6": "Tokyo Ghoul", "7": "Ms. Kobayashi's Dragon Maid", "8": "Darker Than Black", "9": "Attack On Titan", "10": "One Piece", "11": "Bleach", "12": "Sword Art Online", "13": "Re:Zero", "14": "Angel Beats", "15": "Hunter X Hunter", "16": "Naruto", "17": "My Hero Academia", "18": "Konosuba", "19": "Danmachi", "20": "Fullmetal Alchemist", "21": "K-On!", "22": "Overlord", "23": "Demon Slayer", "24": "Akame Ga Kill!", "25": "Inuyasha", "26": "High School DxD", "27": "Fairy Tail", "28": "Dr. Stone", "29": "Dragon Ball", "30": "Katekyo Hitman Reborn", "31": "Mirai Nikki", "32": "Darling In The Franxx", "33": "A Certain Scientific Railgun", "34": "Magi", "35": "Date A Live", "36": "One Punch Man", "37": "Sailor Moon", "38": "Shinmai Maou No Testament", "39": "Owari No Seraph", "40": "Blood Lad", "41": "Gochuumon Wa Usagi Desu Ka", "42": "Soul Eater", "43": "Code Geass", "44": "Ao No Exorcist", "45": "Kill La Kill", "46": "Tensei Shitara Slime Datta Ken", "47": "Noragami", "48": "No Game No Life", "49": "Death Note", "50": "Assassination Classroom", "51": "Jojos Bizarre Adventure", "52": "Gintama", "53": "Haikyuu!!", "54": "Danganronpa", "55": "Fire Force", "56": "Mob Psycho 100", "57": "Shokugeki No Soma", "58": "Goblin Slayer", "59": "Elfen Lied", "60": "Cowboy Bebop", "61": "Love Is War", "62": "Kakegurui", "63": "The Quintessential Quintuplets", "64": "Bungou Stray Dogs", "65": "Jujutsu Kaisen", "66": "Yu Yu Hakusho", "67": "Psycho Pass", "68": "Shaman King", "69": "Bofuri", "70": "Tokyo Revengers", "71": "Spy X Family", "72": "Blue Lock", "73": "Chainsaw Man", "74": "Classroom Of The Elite", "75": "Evangelion", "76": "Record Of Ragnarok", "77": "Tower Of God", "78": "Arifureta", "79": "Madoka Magica", "80": "Promised Neverland", "81": "Jobless Reincarnation", "82": "Baki The Grappler", "83": "Cyberpunk Edgerunners", "84": "Berserk", "85": "Vinland Saga", "86": "Ousama Ranking", "87": "Kaiju No. 8", "88": "Hells Paradise", "89": "The Irregular At Magic Highschool", "90": "Kuroko No Basuke", "91": "Nichijou (My Ordinary Life)", "92": "The Eminence In Shadow", "93": "Wind Breaker", "94": "Durarara!!", "95": "Bocchi the Rock!", "96": "Gachiakuta", "97": "Welcome To Demon School! Iruma Kun", "98": "Shangri La Frontier", "99": "Naoetsu Private High School (Monogatari Series)"};
+const LOC_ANCHOR_DATE = '2026-06-28';
+const LOC_ANCHOR_LOC = 64;   // loc 64 started June 28 00:00 UTC
+const LOC_MAX = 99;
+
+let _locPins = JSON.parse(localStorage.getItem('loc_pins') || '[]');
+
+function getCurrentLoc() {
+  const anchor = new Date(LOC_ANCHOR_DATE + 'T00:00:00Z');
+  const now = new Date();
+  const diffMs = now - anchor;
+  const diffPeriods = Math.floor(diffMs / (12 * 60 * 60 * 1000));
+  const loc = ((LOC_ANCHOR_LOC - 1 + diffPeriods) % LOC_MAX + LOC_MAX) % LOC_MAX + 1;
+  return loc;
+}
+
+function getLocAt(periodsFromNow) {
+  const currentLoc = getCurrentLoc();
+  return ((currentLoc - 1 + periodsFromNow) % LOC_MAX + LOC_MAX) % LOC_MAX + 1;
+}
+
+function getNextResetTime() {
+  const now = new Date();
+  const nextReset = new Date(now);
+  nextReset.setUTCMinutes(0, 0, 0);
+  if (now.getUTCHours() < 12) {
+    nextReset.setUTCHours(12);
+  } else {
+    nextReset.setUTCHours(24);
+  }
+  const diffMs = nextReset - now;
+  const h = Math.floor(diffMs / 3600000);
+  const m = Math.floor((diffMs % 3600000) / 60000);
+  return h + 'h ' + m + 'm';
+}
+
+function renderLocShop() {
+  const q = document.getElementById('locSearch').value.toLowerCase().trim();
+  const currentLoc = getCurrentLoc();
+  const timeLeft = getNextResetTime();
+  let out = '';
+
+  // Pinned
+  if (_locPins.length) {
+    out += '<div style="margin-bottom:14px"><div style="font-size:0.75rem;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700">📌 Pinned</div>';
+    _locPins.forEach(loc => {
+      const series = LOCATIONS[String(loc)] || 'Unknown';
+      const diff = ((loc - currentLoc) % LOC_MAX + LOC_MAX) % LOC_MAX;
+      const hours = diff * 12;
+      const days = Math.floor(hours / 24);
+      const remH = hours % 24;
+      const when = diff === 0 ? '<span style="color:var(--green)">Now!</span>' : (days > 0 ? days + 'd ' + remH + 'h' : remH + 'h');
+      out += '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--card-bg);border:1px solid var(--accent);border-radius:8px;margin-bottom:6px">' +
+        '<div style="font-size:0.75rem;color:var(--muted);width:50px">Loc ' + loc + '</div>' +
+        '<div style="font-family:Rajdhani,sans-serif;font-weight:700;flex:1">' + series + '</div>' +
+        '<div style="font-size:0.82rem;color:var(--muted)">' + when + '</div>' +
+        '<button onclick="removeLocPin(this)" data-loc="' + loc + '" style="background:transparent;border:none;color:var(--muted);cursor:pointer">✕</button>' +
+        '</div>';
+    });
+    out += '</div>';
+  }
+
+  // Current + next 8 periods (4 days)
+  out += '<div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700">Upcoming · next resets in ' + timeLeft + '</div>';
+  for (let i = 0; i < 8; i++) {
+    const loc = getLocAt(i);
+    const series = LOCATIONS[String(loc)] || 'Unknown';
+    const isCurrent = i === 0;
+    const now = new Date();
+    const resetTime = new Date(now);
+    resetTime.setUTCMinutes(0, 0, 0);
+    if (now.getUTCHours() < 12) resetTime.setUTCHours(12); else resetTime.setUTCHours(24);
+    const slotTime = new Date(resetTime.getTime() + (i - 1) * 12 * 3600000);
+    const timeStr = isCurrent ? 'Now' : slotTime.toLocaleString('en-US', {weekday:'short', month:'short', day:'numeric', hour:'numeric', hour12:true, timeZone:'UTC'}) + ' UTC';
+    const matches = q && (series.toLowerCase().includes(q) || String(loc).includes(q));
+    const border = matches ? 'var(--accent2)' : isCurrent ? 'var(--accent)' : 'var(--border)';
+    const bg = isCurrent ? 'var(--panel)' : 'var(--card-bg)';
+    const nameColor = isCurrent ? 'var(--accent2)' : 'var(--text)';
+    const badge = isCurrent ? ' <span style="font-size:0.7rem;color:var(--green);font-weight:400">CURRENT</span>' : '';
+    out += '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:' + bg + ';border:1px solid ' + border + ';border-radius:8px;margin-bottom:5px">' +
+      '<div style="font-size:0.75rem;color:var(--muted);width:50px">Loc ' + loc + '</div>' +
+      '<div style="font-family:Rajdhani,sans-serif;font-weight:700;flex:1;color:' + nameColor + '">' + series + badge + '</div>' +
+      '<div style="font-size:0.78rem;color:var(--muted)">' + timeStr + '</div>' +
+      '</div>';
+  }
+
+  // Search results
+  if (q) {
+    const searchResults = Object.entries(LOCATIONS).filter(([loc, series]) =>
+      series.toLowerCase().includes(q) || loc.includes(q)
+    );
+    if (searchResults.length) {
+      out += '<div style="margin-top:14px;font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700">Search results</div>';
+      searchResults.forEach(([loc, series]) => {
+        const diff = ((parseInt(loc) - currentLoc) % LOC_MAX + LOC_MAX) % LOC_MAX;
+        const hours = diff * 12;
+        const days = Math.floor(hours / 24);
+        const remH = hours % 24;
+        const when = diff === 0 ? 'Now!' : (days > 0 ? 'in ' + days + 'd ' + remH + 'h' : 'in ' + remH + 'h');
+        out += '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--card-bg);border:1px solid var(--accent2);border-radius:8px;margin-bottom:5px">' +
+          '<div style="font-size:0.75rem;color:var(--muted);width:50px">Loc ' + loc + '</div>' +
+          '<div style="font-family:Rajdhani,sans-serif;font-weight:700;flex:1">' + series + '</div>' +
+          '<div style="font-size:0.82rem;color:var(--muted)">' + when + '</div>' +
+          '</div>';
+      });
+    }
+  }
+
+  document.getElementById('locShopList').innerHTML = out;
+}
+
+function pinLocCard() {
+  const q = document.getElementById('locSearch').value.trim().toLowerCase();
+  if (!q) return;
+  const match = Object.entries(LOCATIONS).find(([loc, series]) =>
+    series.toLowerCase().includes(q) || loc === q
+  );
+  if (!match) { showToast('Location not found'); return; }
+  const loc = parseInt(match[0]);
+  if (!_locPins.includes(loc)) {
+    _locPins.push(loc);
+    localStorage.setItem('loc_pins', JSON.stringify(_locPins));
+    renderLocShop();
+    showToast('Pinned: Loc ' + loc + ' — ' + match[1]);
+  }
+}
+
+function clearLocPins() {
+  _locPins = [];
+  localStorage.setItem('loc_pins', JSON.stringify(_locPins));
+  renderLocShop();
+}
+
+function removeLocPin(btn) {
+  const loc = parseInt(btn.getAttribute('data-loc'));
+  _locPins = _locPins.filter(l => l !== loc);
+  localStorage.setItem('loc_pins', JSON.stringify(_locPins));
+  renderLocShop();
 }
 
 function removeFrag(btn) {
